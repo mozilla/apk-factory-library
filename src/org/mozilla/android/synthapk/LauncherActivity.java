@@ -47,13 +47,24 @@ public class LauncherActivity extends Activity {
         return false;
     }
 
-            }
+    public static class TaskListenerService extends Service {
+        @Override
+        public IBinder onBind(Intent intent) {
+            return null;
+        }
 
-    }
+        @Override
+        public void onTaskRemoved(Intent rootIntent) {
+            Intent intent = new Intent("org.mozilla.webapp.TASK_REMOVED");
+            intent.addCategory(Intent.CATEGORY_DEFAULT);
+            intent.putExtra("packageName", getPackageName());
+            sendBroadcast(intent);
+        }
 
     }
 
     private void startWebApp(Intent intent) {
+        startService(new Intent(this.getApplicationContext(), TaskListenerService.class));
         startActivity(intent);
     }
 
