@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="title_activity_installer">Installing…</string>
+    <string name="install_fennec_dialog_message">The app requires a compatible Runtime to run, in this case Firefox For Android.</string>
+    <string name="install_fennec_dialog_title">Install Firefox for Android</string>
+    <string name="install_fennec_dialog_button_cancel">Not now, thanks</string>
+    <string name="install_fennec_dialog_button_ok">Install from the Play store</string>
 </resources>

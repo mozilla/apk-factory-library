@@ -4,6 +4,7 @@ import java.util.List;
 
 import android.app.Activity;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -29,11 +30,7 @@ public class LauncherActivity extends Activity {
     }
 
     private boolean attemptStartWebApp() {
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.addCategory(Intent.CATEGORY_DEFAULT);
-
-        intent.setType(C.WEBAPP_MIMETYPE);
-
+        Intent intent = createWebappIntent();
         intent.putExtra(C.EXTRA_PACKAGE_NAME, getPackageName());
 
         String iconUri = "android.resource://" + getPackageName() + "/drawable/ic_launcher";
@@ -45,6 +42,20 @@ public class LauncherActivity extends Activity {
             return true;
         }
         return false;
+    }
+
+    public static boolean isLaunchable(Context context) {
+        Intent intent = createWebappIntent();
+        List<ResolveInfo> list = context.getPackageManager().queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
+        return list.size() > 0;
+    }
+
+    public static Intent createWebappIntent() {
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.addCategory(Intent.CATEGORY_DEFAULT);
+
+        intent.setType(C.WEBAPP_MIMETYPE);
+        return intent;
     }
 
     public static class TaskListenerService extends Service {
