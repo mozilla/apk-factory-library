@@ -24,7 +24,8 @@
         </activity>
         <activity
             android:name="org.mozilla.android.synthapk.InstallRuntimeActivity"
-            android:label="@string/title_activity_installer" >
+            android:label="@string/title_activity_installer"
+            android:configChanges="keyboardHidden|orientation" >
         </activity>
         
         <!-- Use this to detect recent apps list swiping -->
