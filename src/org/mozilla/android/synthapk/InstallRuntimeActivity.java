@@ -3,6 +3,10 @@ package org.mozilla.android.synthapk;
 import java.util.List;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -24,12 +28,32 @@ public class InstallRuntimeActivity extends Activity {
     }
 
     public boolean installRuntime() {
-        Intent marketIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("market://search?q=pname:"+ C.FENNEC_PACKAGE_NAME));
-        // TODO add a dialog
+        final Intent marketIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id="+ C.FENNEC_PACKAGE_NAME));
 
         if (isCallable(marketIntent) > 0) {
-            Logger.i("Installing runtime");
-            startActivityForResult(marketIntent, R.id.install_runtime_from_market);
+            // we must use this rather than getApplicationContext() according to
+            // https://stackoverflow.com/questions/5796611/dialog-throwing-unable-to-add-window-token-null-is-not-for-an-application-wi
+            new AlertDialog.Builder(this)
+                .setCancelable(true)
+                .setIcon(R.drawable.ic_launcher)
+                .setMessage(R.string.install_fennec_dialog_message)
+                .setTitle(R.string.install_fennec_dialog_title)
+
+                .setPositiveButton(R.string.install_fennec_dialog_button_ok, new OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Logger.i("Installing runtime");
+                        startActivityForResult(marketIntent, R.id.install_runtime_from_market);
+                    }
+                })
+
+                .setNegativeButton(R.string.install_fennec_dialog_button_cancel, new OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        finish();
+                    }
+                })
+                .show();
             return true;
         }
         return false;
@@ -50,8 +74,10 @@ public class InstallRuntimeActivity extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         boolean nextStep = false;
-        if (requestCode == R.id.install_runtime_from_market && resultCode == Activity.RESULT_OK) {
-            nextStep = installWebApp();
+        Log.i(C.TAG, "Returning from the marketplace. Result code = " + resultCode);
+        if (requestCode == R.id.install_runtime_from_market) {
+            nextStep = LauncherActivity.isLaunchable(this) ? installWebApp() : installRuntime();
+            finish();
         }
         assert nextStep;
     }

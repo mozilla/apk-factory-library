@@ -3,31 +3,20 @@ package org.mozilla.android.synthapk;
 import java.util.List;
 
 import android.app.Activity;
-import android.content.ComponentName;
+import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.Process;
-import android.preference.PreferenceManager;
-import android.util.Log;
+import android.os.IBinder;
 
 public class LauncherActivity extends Activity {
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.i(C.TAG, "Process pid=" + Process.myPid());
-        Log.i(C.TAG, "Package resource path is " + getPackageResourcePath());
-        Log.i(C.TAG, "Package     code path is " + getPackageCodePath());
-
-
         super.onCreate(savedInstanceState);
-//        setContentView(R.layout.activity_launcher);
-        boolean success = startWebApp() || installRuntime();
-
+        boolean success = attemptStartWebApp() || installRuntime();
         assert success;
     }
 
@@ -40,64 +29,54 @@ public class LauncherActivity extends Activity {
         return false;
     }
 
-    private boolean startWebApp() {
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.addCategory(Intent.CATEGORY_DEFAULT);
-
-        intent.setType(C.WEBAPP_MIMETYPE);
-
+    private boolean attemptStartWebApp() {
+        Intent intent = createWebappIntent();
         intent.putExtra(C.EXTRA_PACKAGE_NAME, getPackageName());
 
         String iconUri = "android.resource://" + getPackageName() + "/drawable/ic_launcher";
-        Log.i(C.TAG, "Icon uri: " + iconUri);
+
         intent.putExtra(C.EXTRA_ICON_URI, iconUri);
 
-        Logger.i("Installing and starting webapp " + getPackageName());
         if (isCallable(intent) > 0) {
-            startActivity(intent);
+            startWebApp(intent);
             return true;
         }
         return false;
     }
 
-    public boolean startWebApp1() {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-
-        String appUri = prefs.getString(C.APP_URI, null);
-
-        String action = prefs.getString(C.APP_ACTION, null);
-
-        String fennecPackageName = prefs.getString("fennecPackageName", null);
-
-        String slotClass = prefs.getString("slotClassName", null);
-
-        if (appUri != null) {
-            Logger.i("appUri = " + appUri);
-
-            Intent intent = new Intent(action);
-            intent.setComponent(new ComponentName(fennecPackageName, slotClass));
-            intent.setData(Uri.parse(appUri));
-
-            if (isCallable(intent) > 0) {
-                Logger.i("Running webapp " + appUri);
-                this.startActivity(intent);
-                return true;
-            } else {
-                Logger.i("Can't find webapp slot");
-                this.startActivity(intent);
-                return true;
-            }
-
-            // We once were installed, but we don't seem to be now.
-            // Perhaps Firefox is no longer installed?
-        }
-        return false;
+    public static boolean isLaunchable(Context context) {
+        Intent intent = createWebappIntent();
+        List<ResolveInfo> list = context.getPackageManager().queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
+        return list.size() > 0;
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
+    public static Intent createWebappIntent() {
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.addCategory(Intent.CATEGORY_DEFAULT);
 
+        intent.setType(C.WEBAPP_MIMETYPE);
+        return intent;
+    }
+
+    public static class TaskListenerService extends Service {
+        @Override
+        public IBinder onBind(Intent intent) {
+            return null;
+        }
+
+        @Override
+        public void onTaskRemoved(Intent rootIntent) {
+            Intent intent = new Intent("org.mozilla.webapp.TASK_REMOVED");
+            intent.addCategory(Intent.CATEGORY_DEFAULT);
+            intent.putExtra("packageName", getPackageName());
+            sendBroadcast(intent);
+        }
+
+    }
+
+    private void startWebApp(Intent intent) {
+        startService(new Intent(this.getApplicationContext(), TaskListenerService.class));
+        startActivity(intent);
     }
 
     private int isCallable(Intent intent) {
